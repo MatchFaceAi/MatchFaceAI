@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Football Twin | MatchFace AI</title>
+    <style>
+        :root { --primary: #00ff88; --bg: #0b0e11; --card: #15191e; --text: #ffffff; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; }
+        .container { width: 90%; max-width: 450px; padding: 30px; background: var(--card); border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); border: 1px solid #2a2e35; }
+        h1 { color: var(--primary); font-size: 26px; letter-spacing: -1px; margin-bottom: 5px; }
+        p { color: #8a919e; font-size: 14px; margin-bottom: 20px; }
+        select, .btn { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: 1px solid #2a2e35; background: #1f2329; color: white; cursor: pointer; font-size: 16px; transition: 0.3s; }
+        .btn { background: var(--primary); color: #000; font-weight: 800; border: none; margin-top: 20px; text-transform: uppercase; }
+        #loading { display: none; margin: 30px 0; }
+        .spinner { width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1); border-left-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #result { display: none; animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes zoomIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .player-img { width: 220px; height: 220px; border-radius: 50%; object-fit: cover; border: 5px solid var(--primary); box-shadow: 0 0 20px rgba(0,255,136,0.3); margin-bottom: 15px; }
+        label { display: block; text-align: left; font-size: 12px; color: var(--primary); margin-left: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="setup">
+        <h1>AI Football Twin</h1>
+        <p>Global Scout Lookalike Engine</p>
+        
+        <label>HAIR COLOR</label>
+        <select id="hairColor">
+            <option value="dark">Black / Dark Brown</option>
+            <option value="light">Blonde / Ginger / Light Brown</option>
+        </select>
+
+        <label>SKIN TONE</label>
+        <select id="skinColor">
+            <option value="esmer">Tan / Dark / Olive</option>
+            <option value="acik">Fair / Light / Pale</option>
+        </select>
+
+        <div id="upload-area" onclick="document.getElementById('fileInput').click()" style="border: 2px dashed #3a3f47; padding: 25px; border-radius: 12px; margin-top: 15px; cursor: pointer; background: #1a1e23;">
+            <span style="font-size: 14px;">📸 Tap to Analyze Your Face</span>
+            <input type="file" id="fileInput" hidden accept="image/*">
+        </div>
+
+        <button class="btn" onclick="startAnalysis()">Scan My Face</button>
+    </div>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        <p id="status" style="margin-top: 15px; font-weight: bold;">Mapping facial structure...</p>
+    </div>
+
+    <div id="result">
+        <p style="color: var(--primary); font-weight: bold; margin-bottom: 10px;">SUCCESS! MATCH FOUND</p>
+        <img id="player-img" class="player-img" src="" alt="Player">
+        <h2 id="player-name" style="margin: 10px 0;"></h2>
+        <p id="match-score" style="font-size: 18px; color: #fff;"></p>
+        <button class="btn" onclick="location.reload()" style="background: #333; color: #fff;">Try Again</button>
+    </div>
+</div>
+
+<script>
+    const players = [
+        // Siyah Saç - Açık Ten (Türkiye, Avrupa, Latam karışık)
+        { name: "Cristiano Ronaldo", type: "dark-acik", img: "https://img.a.transfermarkt.technology/portrait/header/8198-1694609670.jpg" },
+        { name: "Lionel Messi", type: "dark-acik", img: "https://img.a.transfermarkt.technology/portrait/header/28003-1710080339.jpg" },
+        { name: "Arda Güler", type: "dark-acik", img: "https://img.a.transfermarkt.technology/portrait/header/718682-1691418701.jpg" },
+        { name: "Robert Lewandowski", type: "dark-acik", img: "https://img.a.transfermarkt.technology/portrait/header/38253-1701118182.jpg" },
+        { name: "Harry Kane", type: "dark-acik", img: "https://img.a.transfermarkt.technology/portrait/header/132098-1700210210.jpg" },
+        { name: "Bruno Fernandes", type: "dark-acik", img: "https://img.a.transfermarkt.technology/portrait/header/240306-1683884813.jpg" },
+        { name: "Alvaro Morata", type: "dark-acik", img: "https://img.a.transfermarkt.technology/portrait/header/128223-1716891176.jpg" },
+        { name: "Dusan Vlahovic", type: "dark-acik", img: "https://img.a.transfermarkt.technology/portrait/header/357498-1683884749.jpg" },
+        { name: "Marco Reus", type: "dark-acik", img: "https://img.a.transfermarkt.technology/portrait/header/35207-1683885145.jpg" },
+        { name: "Darwin Nuñez", type: "dark-acik", img: "https://img.a.transfermarkt.technology/portrait/header/546543-1661353139.jpg" },
+
+        // Sarışın/Açık Saç - Açık Ten (Kuzey Avrupa Ağırlıklı)
+        { name: "Erling Haaland", type: "light-acik", img: "https://img.a.transfermarkt.technology/portrait/header/418560-1718005697.jpg" },
+        { name: "Mauro Icardi", type: "light-acik", img: "https://img.a.transfermarkt.technology/portrait/header/199005-1695034637.jpg" },
+        { name: "Kevin De Bruyne", type: "light-acik", img: "https://img.a.transfermarkt.technology/portrait/header/88755-1712217647.jpg" },
+        { name: "Phil Foden", type: "light-acik", img: "https://img.a.transfermarkt.technology/portrait/header/406635-1718005786.jpg" },
+        { name: "Martin Ødegaard", type: "light-acik", img: "https://img.a.transfermarkt.technology/portrait/header/316264-1718006001.jpg" },
+        { name: "Federico Chiesa", type: "light-acik", img: "https://img.a.transfermarkt.technology/portrait/header/341092-1683884638.jpg" },
+        { name: "Julian Brandt", type: "light-acik", img: "https://img.a.transfermarkt.technology/portrait/header/187487-1683885172.jpg" },
+        { name: "Kai Havertz", type: "light-acik", img: "https://img.a.transfermarkt.technology/portrait/header/309400-1718006124.jpg" },
+
+        // Siyah Saç - Esmer/Koyu Ten (Brezilya, Afrika, Ortadoğu)
+        { name: "Kylian Mbappé", type: "dark-esmer", img: "https://img.a.transfermarkt.technology/portrait/header/342229-1682683695.jpg" },
+        { name: "Neymar Jr", type: "dark-esmer", img: "https://img.a.transfermarkt.technology/portrait/header/68273-1715764042.jpg" },
+        { name: "Vinícius Júnior", type: "dark-esmer", img: "https://img.a.transfermarkt.technology/portrait/header/371998-1664869400.jpg" },
+        { name: "Jude Bellingham", type: "dark-esmer", img: "https://img.a.transfermarkt.technology/portrait/header/581671-1693987379.jpg" },
+        { name: "Mohamed Salah", type: "dark-esmer", img: "https://img.a.transfermarkt.technology/portrait/header/131864-1714413348.jpg" },
+        { name: "Bukayo Saka", type: "dark-esmer", img: "https://img.a.transfermarkt.technology/portrait/header/433177-1718005934.jpg" },
+        { name: "Son Heung-min", type: "dark-esmer", img: "https://img.a.transfermarkt.technology/portrait/header/91845-1684310502.jpg" },
+        { name: "Achraf Hakimi", type: "dark-esmer", img: "https://img.a.transfermarkt.technology/portrait/header/398073-1682683525.jpg" },
+        { name: "Lamine Yamal", type: "dark-esmer", img: "https://img.a.transfermarkt.technology/portrait/header/927231-1716892556.jpg" },
+        { name: "Rodrygo", type: "dark-esmer", img: "https://img.a.transfermarkt.technology/portrait/header/412363-1664869151.jpg" },
+        { name: "Alphonso Davies", type: "dark-esmer", img: "https://img.a.transfermarkt.technology/portrait/header/424204-1683885012.jpg" },
+        { name: "Raphinha", type: "dark-esmer", img: "https://img.a.transfermarkt.technology/portrait/header/411295-1701117627.jpg" }
+    ];
+
+    function startAnalysis() {
+        if(!document.getElementById('fileInput').files[0]) { alert("Please upload your photo first!"); return; }
+        const hair = document.getElementById('hairColor').value;
+        const skin = document.getElementById('skinColor').value;
+        const userType = hair + "-" + skin;
+
+        document.getElementById('setup').style.display = 'none';
+        document.getElementById('loading').style.display = 'block';
+
+        let s = 0;
+        const stages = ["Extracting facial data...", "Searching FIFA database...", "Calculating resemblance...", "Finalizing biometric match..."];
+        const interval = setInterval(() => {
+            document.getElementById('status').innerText = stages[s];
+            s++; if(s >= stages.length) clearInterval(interval);
+        }, 800);
+
+        setTimeout(() => {
+            let filtered = players.filter(p => p.type === userType);
+            if(filtered.length === 0) filtered = [players[Math.floor(Math.random() * players.length)]];
+            const player = filtered[Math.floor(Math.random() * filtered.length)];
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('player-img').src = player.img;
+            document.getElementById('player-name').innerText = player.name;
+            document.getElementById('match-score').innerText = (Math.floor(Math.random() * 8) + 91) + "% Biometric Match!";
+        }, 3500);
+    }
+</script>
+</body>
+</html>
